@@ -8,20 +8,20 @@ let conDetails = mysql.createConnection({
     password:"",
     database:"twitter_db"
 });
-let crypto = require("crypto-js");
+let Cryptojs = require("crypto-js");
 
 const enc = (data,key)=>{
-    let encData = crypto.AES.encrypt(data,key).toString();
+    let encData = Cryptojs.AES.encrypt(data,key).toString();
     return encData;
 }
 
 const dec =(encData,key)=>{
-    let decData = crypto.AES.decrypt(encData,key);
-    return decData.toString(crypto.enc.Utf8);
+    let decData = Cryptojs.AES.decrypt(encData,key);
+    return decData.toString(Cryptojs.enc.Utf8);
 }
-const test = async ()=>{
-    console.log("test");
-}
+// const test = async ()=>{
+//     console.log("test");
+// }
 
 http.createServer((req,res)=>{
     res.setHeader('Access-Control-Allow-Origin','*'); //set header config
@@ -44,20 +44,32 @@ http.createServer((req,res)=>{
             res.end();
         })
     }else if(req.url == "/login"){
-        let tmpRes = "";
         let decPass;
         let form = new formidable.IncomingForm();
         form.parse(req,(err,fields,files)=>{
             let email = fields.email;
             let pass = fields.pass;
             conDetails.connect((err)=>{
-                // let selectSql = `SELECT * FROM user_tb`;
+                // if(err) throw err;
                 let selectSql = `SELECT * FROM user_tb WHERE email='${email}'`;
                 conDetails.query(selectSql,(err,result)=>{  
-                    if(err) throw err;
-                    console.log(result);
-                    decPass = dec(result[0].password,"hotdog");
-                    console.log(decPass);
+                    // if(err) throw err;
+                    if(result != ""){
+                        decPass = dec(result[0].password,"hotdog");
+                        if(JSON.parse(decPass)[0] == pass[0]){
+                            res.writeHead(200,"Varified");
+                            res.write(JSON.stringify(result));
+                            res.end();
+                        }else{
+                            res.writeHead(401,"Unauthorized");
+                            res.end();
+                        }
+                    }else{
+                        console.log("user isn't found");
+                        res.writeHead(200,"Unauthorized");
+                        res.write("Unauthorized");
+                        res.end();
+                    }
                 })
             })
         })
